@@ -61,9 +61,11 @@ export async function verifyJwt(req: Request, res: Response, next: NextFunction)
 
       if (testUser) {
         req.user = testUser;
-        return next();
+        next();
+        return;
       } else {
-        return res.status(401).json({ error: 'Tidak ada data tenant_users untuk test bypass' });
+        res.status(401).json({ error: 'Tidak ada data tenant_users untuk test bypass' });
+        return;
       }
     }
 

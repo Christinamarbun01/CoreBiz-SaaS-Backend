@@ -135,6 +135,7 @@ import inventoryRoutes from './routes/inventoryRoutes.js';
 import shiftRoutes from './routes/shiftRoutes.js';
 import expenseRoutes from './routes/expenseRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
 
 // Mount sub-routers
 apiV1Router.use('/orders', orderRoutes);
@@ -145,6 +146,7 @@ apiV1Router.use('/inventory', inventoryRoutes);
 apiV1Router.use('/shifts', shiftRoutes);
 apiV1Router.use('/expenses', expenseRoutes);
 apiV1Router.use('/reports', reportRoutes);
+apiV1Router.use('/dashboard', dashboardRoutes);
 
 // Mount v1 router
 app.use('/api/v1', publicLimiter, apiV1Router);

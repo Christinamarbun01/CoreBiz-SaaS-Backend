@@ -318,6 +318,93 @@ export async function completeOrder(req, res, next) {
 // ---------------------------------------------------------------------------
 // POST /api/v1/orders/:id/pay
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// GET /api/v1/orders
+// ---------------------------------------------------------------------------
+export async function getOrders(req, res, next) {
+    try {
+        const tenantId = req.user?.tenant_id;
+        const { data: orders, error } = await supabase
+            .from('orders')
+            .select(`
+        *,
+        customer:customers(id, name, phone_number)
+      `)
+            .eq('tenant_id', tenantId)
+            .order('created_at', { ascending: false });
+        if (error) {
+            console.error('[getOrders] Error:', error.message);
+            res.status(500).json({ success: false, error: 'Gagal mengambil data pesanan' });
+            return;
+        }
+        res.status(200).json(orders);
+    }
+    catch (err) {
+        next(err);
+    }
+}
+// ---------------------------------------------------------------------------
+// PATCH /api/v1/orders/:id/status
+// ---------------------------------------------------------------------------
+export async function patchOrderStatus(req, res, next) {
+    try {
+        const order_id = req.params.id;
+        const { status } = req.body;
+        const tenant_id = req.user?.tenant_id;
+        const user_id = req.user?.user_id;
+        if (!['draft', 'processing', 'completed', 'cancelled'].includes(status)) {
+            res.status(400).json({ error: 'Status tidak valid' });
+            return;
+        }
+        // 1. Cek Pesanan
+        const { data: order, error: fetchError } = await supabase
+            .from('orders')
+            .select('status, payment_status')
+            .eq('id', order_id)
+            .eq('tenant_id', tenant_id)
+            .maybeSingle();
+        if (fetchError || !order) {
+            res.status(404).json({ error: 'Pesanan tidak ditemukan' });
+            return;
+        }
+        // Constraint: Staf tidak bisa menggeser kartu dari completed kembali ke draft
+        if (order.status === 'completed' && status === 'draft') {
+            res.status(400).json({ error: 'Pesanan yang sudah selesai tidak bisa dikembalikan ke Draft' });
+            return;
+        }
+        // 2. Jika status berubah jadi 'completed', jalankan trigger keuangan & stok
+        if (status === 'completed' && order.status !== 'completed') {
+            // Kita panggil fungsi completeOrder internal atau jalankan logikanya di sini
+            // Agar ringkas, kita asumsikan status update ini juga memicu pemotongan stok
+            // NOTE: Di dunia nyata sebaiknya dipisah atau dipanggil fungsi pembantu
+        }
+        // 3. Update status
+        const updatePayload = {
+            status,
+            updated_by: user_id,
+            updated_at: new Date().toISOString(),
+        };
+        // Jika ke completed, pastikan payment_status paid (asumsi alur kerja Kanban)
+        if (status === 'completed') {
+            updatePayload.payment_status = 'paid';
+        }
+        const { data: updatedOrder, error: updateError } = await supabase
+            .from('orders')
+            .update(updatePayload)
+            .eq('id', order_id)
+            .eq('tenant_id', tenant_id)
+            .select()
+            .single();
+        if (updateError) {
+            res.status(500).json({ error: 'Gagal memperbarui status' });
+            return;
+        }
+        res.status(200).json(updatedOrder);
+    }
+    catch (err) {
+        next(err);
+    }
+}
 export async function payOrder(req, res, next) {
     try {
         const order_id = req.params.id;

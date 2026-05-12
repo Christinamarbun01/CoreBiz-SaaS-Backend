@@ -8,6 +8,8 @@ import {
   completeOrder,
   payOrder,
   payOrderSchema,
+  getOrders,
+  patchOrderStatus,
 } from '../controllers/orderController.js';
 import {
   linkItemsSchema,
@@ -73,6 +75,26 @@ router.post(
   authorizeRole(['admin', 'owner', 'manager', 'staff']),
   validateBody(payOrderSchema),
   payOrder
+);
+
+/**
+ * GET /api/v1/orders
+ */
+router.get(
+  '/',
+  verifyJwt,
+  authorizeRole(['admin', 'owner', 'manager', 'staff']),
+  getOrders,
+);
+
+/**
+ * PATCH /api/v1/orders/:id/status
+ */
+router.patch(
+  '/:id/status',
+  verifyJwt,
+  authorizeRole(['admin', 'owner', 'manager', 'staff']),
+  patchOrderStatus,
 );
 
 export default router;

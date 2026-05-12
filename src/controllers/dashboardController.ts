@@ -40,42 +40,34 @@ export async function getProfitLoss(req: Request, res: Response, next: NextFunct
     // If 'all', we keep startDate as null (no lower bound filter)
 
     // 3. Execute queries in parallel
-    const queries = [
-      // Query for Revenue (Completed orders only)
-      (() => {
-        let q = supabase
-          .from('orders')
-          .select('created_at, total_amount')
-          .eq('tenant_id', tenant_id)
-          .eq('status', 'completed');
-        if (startDate) {
-          q = q.gte('created_at', startDate.toISOString());
-        }
-        return q;
-      })(),
+    // First query for Revenue (Completed orders only)
+    let ordersQuery = supabase
+      .from('orders')
+      .select('created_at, total_amount')
+      .eq('tenant_id', tenant_id)
+      .eq('status', 'completed');
+    if (startDate) {
+      ordersQuery = ordersQuery.gte('created_at', startDate.toISOString());
+    }
 
-      // Query for COGS (Order Items for completed orders)
-      (() => {
-        let q = supabase
-          .from('order_items')
-          .select(`
-            quantity,
-            unit_cost,
-            orders!inner (
-              status,
-              created_at
-            )
-          `)
-          .eq('tenant_id', tenant_id)
-          .eq('orders.status', 'completed');
-        if (startDate) {
-          q = q.gte('orders.created_at', startDate.toISOString());
-        }
-        return q;
-      })()
-    ];
+    // Second query for COGS (Order Items for completed orders)
+    let cogsQuery = supabase
+      .from('order_items')
+      .select(`
+        quantity,
+        unit_cost,
+        orders!inner (
+          status,
+          created_at
+        )
+      `)
+      .eq('tenant_id', tenant_id)
+      .eq('orders.status', 'completed');
+    if (startDate) {
+      cogsQuery = cogsQuery.gte('orders.created_at', startDate.toISOString());
+    }
 
-    const [ordersResult, cogsResult] = await Promise.all(queries);
+    const [ordersResult, cogsResult] = await Promise.all([ordersQuery, cogsQuery]);
 
     if (ordersResult.error) throw ordersResult.error;
     if (cogsResult.error) throw cogsResult.error;

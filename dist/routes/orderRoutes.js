@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { verifyJwt, authorizeRole } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
-import { posOrderSchema, failFastQuantityGuard, createPosOrder, completeOrder, payOrder, payOrderSchema, } from '../controllers/orderController.js';
+import { posOrderSchema, failFastQuantityGuard, createPosOrder, completeOrder, payOrder, payOrderSchema, getOrders, patchOrderStatus, } from '../controllers/orderController.js';
 import { linkItemsSchema, linkOrderItems, } from '../controllers/orderLinkingController.js';
 const router = Router();
 /**
@@ -35,4 +35,12 @@ router.put('/:id/complete', verifyJwt, authorizeRole(['admin', 'owner', 'manager
  * Memproses pembayaran dan menyelesaikan pesanan (Zero Trust, Kalkulasi Server-Side)
  */
 router.post('/:id/pay', verifyJwt, authorizeRole(['admin', 'owner', 'manager', 'staff']), validateBody(payOrderSchema), payOrder);
+/**
+ * GET /api/v1/orders
+ */
+router.get('/', verifyJwt, authorizeRole(['admin', 'owner', 'manager', 'staff']), getOrders);
+/**
+ * PATCH /api/v1/orders/:id/status
+ */
+router.patch('/:id/status', verifyJwt, authorizeRole(['admin', 'owner', 'manager', 'staff']), patchOrderStatus);
 export default router;

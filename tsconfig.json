@@ -9,6 +9,8 @@
     /* Path */
     "rootDir": "./src",
     "outDir": "./dist",
+    /*"ignoreDeprecations": "6.0",*/
+
     "baseUrl": ".",
     /* Strict */
     "strict": false,
